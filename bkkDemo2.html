@@ -1,0 +1,1902 @@
+﻿<!DOCTYPE html>
+
+<html>
+<!-- head -->
+
+<head>
+    <meta charset="utf-8" />
+    <title>Bkk Callcenter Demo2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="Keywords" content="Entronica, VoIP, HTML5, WebRTC, RTCWeb, SIP, IMS, Video chat, VP8, live demo " />
+    <meta name="Description" content="HTML5 SIP client using WebRTC framework" />
+    <meta name="author" content="Entronica" />
+
+    <!-- <script src="./assets/js/PhoneJs.js" type="text/javascript"> </script> -->
+    <script src="./phone.js" type="text/javascript">
+        // <script src="./assets/js/phone.js" type="text/javascript">
+    </script>
+    <!-- <script src="./network.min.js"></script> -->
+    <!-- <script src="https://cdn.WebRTC-Experiment.com/DetectRTC.js"></script> -->
+    <!-- <script src="./assets/js/require.js" type="text/javascript"></script> -->
+    <!--<script src="./assets/js/SdpParser.js" type="text/javascript"> </script>
+    <script src="./assets/js/jscommon.js" type="text/javascript"> </script>-->
+    <!-- Styles -->
+    <link href="./assets/css/bootstrap.css" rel="stylesheet" />
+    <script>
+
+    </script>
+    <style type="text/css">
+        body {
+            padding-top: 80px;
+            padding-bottom: 40px;
+        }
+
+        .navbar-inner-red {
+            background-color: #600000;
+            background-image: none;
+            background-repeat: no-repeat;
+            filter: none;
+        }
+
+        .full-screen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .normal-screen {
+            position: relative;
+        }
+
+        .call-options {
+            padding: 5px;
+            background-color: #f0f0f0;
+            border: 1px solid #eee;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            -webkit-border-radius: 4px;
+            -moz-border-radius: 4px;
+            border-radius: 4px;
+            -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+            -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+            -webkit-transition-property: opacity;
+            -moz-transition-property: opacity;
+            -o-transition-property: opacity;
+            -webkit-transition-duration: 2s;
+            -moz-transition-duration: 2s;
+            -o-transition-duration: 2s;
+        }
+
+        .tab-video,
+        .div-video {
+            width: 100%;
+            height: 0px;
+            -webkit-transition-property: height;
+            -moz-transition-property: height;
+            -o-transition-property: height;
+            -webkit-transition-duration: 2s;
+            -moz-transition-duration: 2s;
+            -o-transition-duration: 2s;
+        }
+
+
+
+        .label-align {
+            display: block;
+            padding-left: 15px;
+            text-indent: -15px;
+        }
+
+        .input-align {
+            width: 13px;
+            height: 13px;
+            padding: 0;
+            margin: 0;
+            vertical-align: bottom;
+            position: relative;
+            top: -1px;
+            *overflow: hidden;
+        }
+
+        .glass-panel {
+            z-index: 99;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            top: 0;
+            left: 0;
+            opacity: 0.8;
+            background-color: Gray;
+        }
+
+        .div-keypad {
+            z-index: 100;
+            position: fixed;
+            -moz-transition-property: left top;
+            -o-transition-property: left top;
+            -webkit-transition-duration: 2s;
+            -moz-transition-duration: 2s;
+            -o-transition-duration: 2s;
+        }
+
+        .previewvideo {
+            position: absolute;
+            width: 88px;
+            height: 72px;
+            margin-top: -42px;
+
+        }
+
+        .video {
+            transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
+            /* Safari and Chrome */
+            -moz-transform: rotateY(180deg);
+            /* Firefox */
+        }
+    </style>
+    <link href="./assets/css/bootstrap-responsive.css" rel="stylesheet" />
+
+    <!-- Javascript code -->
+    <script type="text/javascript">
+        var sTransferNumber;
+        var oRingTone, oRingbackTone;
+        var oSipStack, oSipSessionRegister, oSipSessionCall, oSipSessionTransferCall;
+        var videoRemote, videoLocal, audioRemote;
+        var bFullScreen = false;
+        var oNotifICall;
+        var bDisableVideo = false;
+        var viewVideoLocal, viewVideoRemote, viewLocalScreencast; // <video> (webrtc) or <div> (webrtc4all)
+        var oConfigCall;
+        var oReadyStateTimer;
+
+        var date1;
+        var date2;
+
+        var ua;
+        var session;
+
+        var browserFeaturesTable;
+
+        var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+        var cameraStream;
+
+        C = {
+            divKeyPadWidth: 220
+        };
+
+        if (typeof Object.assign != 'function') {
+            Object.assign = function (target, varArgs) { // .length of function is 2
+                'use strict';
+                if (target == null) { // TypeError if undefined or null
+                    throw new TypeError('Cannot convert undefined or null to object');
+                }
+
+                var to = Object(target);
+
+                for (var index = 1; index < arguments.length; index++) {
+                    var nextSource = arguments[index];
+
+                    if (nextSource != null) { // Skip over if undefined or null
+                        for (var nextKey in nextSource) {
+                            // Avoid bugs when hasOwnProperty is shadowed
+                            if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                                to[nextKey] = nextSource[nextKey];
+                            }
+                        }
+                    }
+                }
+                return to;
+            };
+        }
+        ////////////// DetectRTC //////////////
+        function appendTR(firstValue, secondValue, orignal) {
+            var tr = document.createElement('tr');
+            tr.id = orignal;
+            var html = '<td style="padding: 5px!important; text-aling: center!important;width:20px!important;"><a style="cursor:pointer;" href="#' + orignal + '">#</a></td>';
+            html += '<td style="padding:5px;width:100%; overflow:hidden;padding: 5px!important; text-aling: center!important;width:50%!important;">' + firstValue + '</td>';
+            html += '<td style="padding:5px;">' + secondValue + '</td>';
+            tr.innerHTML = html;
+            if (orignal === 'error') {
+                tr.style.color = 'red';
+            }
+            browserFeaturesTable.appendChild(tr);
+            return tr;
+        }
+
+        function printVal(value) {
+            return value == true ? '<font style="color: green">Yes</font>' : value == false ? '<font style="color: red;">No</font>' : value;
+        }
+        function getInfoDiv(id) {
+            return '<div class="info-div" id="' + id + '"></div>';
+        }
+        var output = '';
+
+        function detectIpAddresses(stream) {
+            PhoneJs.DetectRTC.DetectLocalIPAddress(function (ipAddress, isPublic, isIpv4) {
+                if (!ipAddress) return;
+                // console.log(ipAddress, isPublic, isIpv4);
+                if (ipAddress.indexOf('Local') !== -1) {
+                    appendTR('Your <strong>Local</strong> IP Address', ipAddress);
+                } else {
+                    appendTR('Your <strong>Public</strong> IP Address', ipAddress);
+                }
+                if (!stream) return;
+                stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+                stream = null;
+            }, stream);
+        }
+
+        function onDetectRTCLoaded() {
+            browserFeaturesTable.innerHTML = '';
+            appendTR('Operating System', printVal(PhoneJs.DetectRTC.osName) + ' version: ' + printVal(PhoneJs.DetectRTC.osVersion), 'osVersion');
+            appendTR('Browser', printVal(PhoneJs.DetectRTC.browser.name) + ' version: ' + printVal(PhoneJs.DetectRTC.browser.fullVersion) + '<br>Private browsing? ' + printVal(PhoneJs.DetectRTC.browser.isPrivateBrowsing), 'fullVersion');
+            appendTR('Display resolutions', printVal(PhoneJs.DetectRTC.displayResolution), 'displayResolution');
+            appendTR('Display aspect ratio', printVal(PhoneJs.DetectRTC.displayAspectRatio), 'displayAspectRatio');
+            output = printVal(PhoneJs.DetectRTC.hasSpeakers);
+            if (PhoneJs.DetectRTC.audioOutputDevices.length) {
+                output += ' (Found speaker devices: ' + PhoneJs.DetectRTC.audioOutputDevices.length + ')';
+                var labels = [];
+                PhoneJs.DetectRTC.audioOutputDevices.forEach(function (device) {
+                    if (PhoneJs.DetectRTC.browser.name === 'Edge' && device.isCustomLabel) {
+                        device.label = 'Microsoft Edge is unable to detect label for this speaker device.';
+                    }
+                    labels.push(device.label);
+                });
+                // output += '<br><div style="margin-left:15px;">' + labels.join('<br>') + '</div>';
+            }
+            appendTR('System has Speakers?', output, 'audioOutputDevices');
+            output = printVal(PhoneJs.DetectRTC.hasMicrophone);
+            if (PhoneJs.DetectRTC.audioInputDevices.length) {
+                output += ' (Found microphone devices: ' + PhoneJs.DetectRTC.audioInputDevices.length + ')';
+                var labels = [];
+                PhoneJs.DetectRTC.audioInputDevices.forEach(function (device) {
+                    labels.push(device.label);
+                });
+                // output += '<br><div style="margin-left:15px;">' + labels.join('<br>') + '</div>';
+            }
+            appendTR('System has Microphone?', output, 'audioInputDevices');
+            output = printVal(PhoneJs.DetectRTC.hasWebcam);
+            if (PhoneJs.DetectRTC.videoInputDevices.length) {
+                output += ' (Found webcam devices: ' + PhoneJs.DetectRTC.videoInputDevices.length + ')';
+                var labels = [];
+                PhoneJs.DetectRTC.videoInputDevices.forEach(function (device) {
+                    labels.push(device.label);
+                });
+                // output += '<br><div style="margin-left:15px;">' + labels.join('<br>') + '</div>';
+            }
+            appendTR('System has Webcam?', output, 'videoInputDevices');
+            appendTR('Website has webcam permissions?', printVal(PhoneJs.DetectRTC.isWebsiteHasWebcamPermissions), 'isWebsiteHasWebcamPermissions');
+            appendTR('Website has microphone permissions?', printVal(PhoneJs.DetectRTC.isWebsiteHasMicrophonePermissions), 'isWebsiteHasMicrophonePermissions');
+            appendTR('Browser allows getUserMedia on this page?', printVal(PhoneJs.DetectRTC.isGetUserMediaSupported), 'isGetUserMediaSupported');
+            appendTR('Can you change output audio devices?' + getInfoDiv('infoIcon-set-sink-id'), printVal(PhoneJs.DetectRTC.isSetSinkIdSupported), 'isSetSinkIdSupported');
+            appendTR('Can you change camera resolutions without making new getUserMedia request?' + getInfoDiv('infoIcon-apply-constraints'), printVal(PhoneJs.DetectRTC.isApplyConstraintsSupported), 'isApplyConstraintsSupported');
+            appendTR('Browser Supports WebRTC (Either 1.0 or 1.1)?', printVal(PhoneJs.DetectRTC.isWebRTCSupported), 'isWebRTCSupported');
+            appendTR('Browser Supports ORTC (WebRTC 1.1)?', printVal(PhoneJs.DetectRTC.isORTCSupported), 'isORTCSupported');
+            appendTR('Can you replace tracks without renegotiating peers?' + getInfoDiv('infoIcon-replace-tracks'), printVal(PhoneJs.DetectRTC.isRTPSenderReplaceTracksSupported), 'isRTPSenderReplaceTracksSupported');
+            appendTR('Can your browser record remote audio or process remote audio stream in WebAudio API?', printVal(PhoneJs.DetectRTC.isRemoteStreamProcessingSupported), 'isRemoteStreamProcessingSupported');
+            appendTR('Browser Supports WebSockets API?', printVal(PhoneJs.DetectRTC.isWebSocketsSupported), 'isWebSocketsSupported');
+            var tr = appendTR('Your system blocked WebSockets protocol or WebSockets server is not accessible?', printVal(PhoneJs.DetectRTC.isWebSocketsBlocked), 'isWebSocketsBlocked');
+            PhoneJs.DetectRTC.checkWebSocketsSupport(function () {
+                tr.querySelectorAll('td')[2].innerHTML = printVal(PhoneJs.DetectRTC.isWebSocketsBlocked);
+            });
+            appendTR('Browser Supports WebAudio API?', printVal(PhoneJs.DetectRTC.isAudioContextSupported), 'isAudioContextSupported');
+            appendTR('Browser Supports SCTP Data Channels?', printVal(PhoneJs.DetectRTC.isSctpDataChannelsSupported), 'isSctpDataChannelsSupported');
+            appendTR('Browser Supports RTP Data Channels?', printVal(PhoneJs.DetectRTC.isRtpDataChannelsSupported), 'isRtpDataChannelsSupported');
+            appendTR('This page Supports Screen Capturing API?' + getInfoDiv('infoIcon-isScreenCapturingSupported'), printVal(PhoneJs.DetectRTC.isScreenCapturingSupported), 'isScreenCapturingSupported');
+            appendTR('Does Browser Support multi-monitor selection & capturing screen of any monitor?', printVal(PhoneJs.DetectRTC.isMultiMonitorScreenCapturingSupported), 'isMultiMonitorScreenCapturingSupported');
+            appendTR('Is it a mobile device?', printVal(PhoneJs.DetectRTC.isMobileDevice), 'isMobileDevice');
+            appendTR('Does Browser Support Stream Capturing from Canvas?', printVal(PhoneJs.DetectRTC.isVideoSupportsStreamCapturing), 'isVideoSupportsStreamCapturing');
+            appendTR('Does Browser Support Stream Capturing from Video?', printVal(PhoneJs.DetectRTC.isVideoSupportsStreamCapturing), 'isVideoSupportsStreamCapturing');
+            appendTR('Does Browser Support Promises?', printVal(PhoneJs.DetectRTC.isPromisesSupported), 'isPromisesSupported');
+            appendTR('<a id="btn-show-ip-addresses" href"#" style="cursor:pointer;">Click to show IP addresses</a>', '', '');
+            document.getElementById('btn-show-ip-addresses').onclick = function (e) {
+                e.preventDefault();
+                var parentNode = this.parentNode.parentNode;
+                parentNode.parentNode.removeChild(parentNode);
+                if (PhoneJs.DetectRTC.browser.name === 'Edge') {
+                    navigator.mediaDevices.getUserMedia({ video: true }).then(function (stream) {
+                        detectIpAddresses(stream);
+                    });
+                    return;
+                }
+                detectIpAddresses();
+            };
+        }
+
+        function testWebRTC() {
+            PhoneJs.loadDetectRTC(function () {
+                document.getElementById("loading-modal").innerText = '';
+                onDetectRTCLoaded();
+            });
+        }
+
+        function deleteAllCookies() {
+            var cookies = document.cookie.split(";");
+
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i];
+                var eqPos = cookie.indexOf("=");
+                var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
+        }
+
+        function setCookie(name, value, days) {
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+        function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        ////////////// DetectRTC //////////////
+        window.onload = function () {
+            try {
+                if (console) {
+                    // console.log('onload function call.');
+                }
+
+                // PhoneJs.setAudioBandwidth(256);
+                // PhoneJs.setVideoBandwidth(256);
+
+                // deleteAllCookies();
+                var cookies = '';
+                for (var i = 0; i < 10; i++) {
+                    cookies += '12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890';
+                }
+
+                // setCookie('jssip', cookies, 5);
+
+                videoLocal = document.getElementById("video_local");
+                videoRemote = document.getElementById("video_remote");
+                audioRemote = document.getElementById("audio_remote");
+
+                browserFeaturesTable = document.getElementById("result-table");
+
+                document.onkeyup = onKeyUp;
+                document.body.onkeyup = onKeyUp;
+                divCallCtrl.onmousemove = onDivCallCtrlMouseMove;
+
+                // Initialize call button
+                uiBtnCallSetText("Call");
+                btnAudioCall.disabled = true;
+                btnVideoCall.disabled = true;
+                btnRegister.disabled = false;
+                btnUnRegister.disabled = true;
+                var host = 'https://phone-log.entro-lab.com';
+                // var host = 'https://iot-brekeke-wssip.ais.co.th:49999';
+                PhoneJs.PhoneLogger.url = host;  
+                PhoneJs.PhoneNetwork.url = host;
+                PhoneJs.PhoneLogger.enable = true;
+                PhoneJs.PhoneNetwork.enable = true;
+                // PhoneJs.PhoneNetwork.test();
+                var host = window.location.hostname === '' ? 'entro-lab.com' : window.location.hostname;
+                var wsUri = 'wss://bkk.' + host + ':10081';
+                document.getElementById("txtWebSsocketUri").value = wsUri;
+
+                var sipIP_Port = 'bkk.'+host + ':' + PhoneJs._def.SIP_PORT;
+                document.getElementById("txtSipServerUri").value = sipIP_Port;
+
+                // var chkDefaultStun = document.getElementById("chkDefaultStun");
+
+                chkDefaultFunc();
+
+                // testSpeed();
+
+            } catch (error) {
+                console.error(error);
+            }
+
+        };
+
+        // function testSpeed() {
+        //     PhoneJs.PhoneNetwork.test(function (response) {
+        //         console.log(response);
+        //         txtPingTime.innerHTML = 'Latency: ' + (PhoneJs.PhoneNetwork.latency ? PhoneJs.PhoneNetwork.latency : '?') + 'ms , Download: ' + (PhoneJs.PhoneNetwork.downloadSpeed ? PhoneJs.PhoneNetwork.downloadSpeed : '?') + 'Mbps , Upload: ' + (PhoneJs.PhoneNetwork.uploadSpeed ? PhoneJs.PhoneNetwork.uploadSpeed : '?') + 'Mbps';
+        //     });
+
+        //     setTimeout(testSpeed, 10000);
+        // }
+
+        // sends SIP REGISTER request to login
+        function sipRegister() {
+            // catch exception for IE (DOM not ready)
+            try {
+                // btnRegister.disabled = true;
+                var txtSipUri = 'sip:' + txtSipUser.value + '@' + txtSipServerUri.value;
+                if (!txtWebSsocketUri.value || !txtSipUri) {
+                    txtRegStatus.innerHTML = '<b>Please fill madatory fields (*)</b>';
+                    btnRegister.disabled = false;
+                    return;
+                }
+
+                // enable notifications if not already done
+                if (window.webkitNotifications && window.webkitNotifications.checkPermission() != 0) {
+                    window.webkitNotifications.requestPermission();
+                }
+
+
+                var socket = new PhoneJs.WebSocketInterface(txtWebSsocketUri.value);
+                // socket.via_transport = "tcp";
+
+                socket.onconnect = function () {
+                    console.log('wss connect');
+                };
+
+
+                var configuration = {
+                    sockets: [socket],
+                    uri: txtSipUri,
+                    password: txtPassword.value,
+                    authorization_user: txtSipUserAuthx.value,
+                    // authorization_user: txtSipUser.value,
+                    register: false,      // dont't automatic register
+                    trace_sip: true
+                    //connection_recovery_max_interval: 30,
+                    //connection_recovery_min_interval: 2,
+                    //  display_name : txtDisplayname.value
+                };
+                if (txtDisplayname.value) {
+                    configuration.display_name = txtDisplayname.value;
+                }
+                // document.getElementById("txtDisplayname").value
+
+
+                ua = new PhoneJs.UA(configuration);
+
+                var chkVideoBW = document.getElementById("chkVideoBW");
+                var txtVideoAS = document.getElementById("txtVideoAS");
+                var chkAudioBW = document.getElementById("chkAudioBW");
+                var txtAudioAS = document.getElementById("txtAudioAS");
+
+                if (chkVideoBW.checked) {
+                    ua.setVideoBandwidth(txtVideoAS.value);
+                }
+
+                if (chkAudioBW.checked) {
+                    ua.setAudioBandwidth(txtAudioAS.value);
+                }
+
+                // ua.setVideoBandwidth(256);
+                // ua.setAudioBandwidth(54);
+
+                // PhoneJs.debug.enable('JsSIP:*');
+
+                // PhoneJs.setVideoBandwidth(256, 800, 2400);
+
+                ua.on('connecting', function (e) {
+                    
+                    console.log('UA "connecting" event');
+                    txtRegStatus.innerHTML = '<i>Connecting...</i>';
+                    date1 = Date.now();
+                });
+
+                ua.on('connected', function (e) {
+                    console.log('UA "connected" event');
+                    txtRegStatus.innerHTML = '<i>Connected</i>';
+
+                    ua.registrator().setExtraHeaders([
+                        'X-Foo: x-bar'
+                    ]);
+                    // console.dir(ua);
+
+                    // pingTest();
+
+
+
+                    // const WebSocket = require('ws');
+
+                    window.alert("TAB");
+                    ua.register(); // connect to SIP server
+                });
+
+                ua.on('disconnected', function (e) {
+                    console.log('UA "disconnected" event');
+                    txtRegStatus.innerHTML = '<i>Disconnected</i>';
+                    btnRegister.disabled = false;
+                    btnUnRegister.disabled = true;
+                    btnAudioCall.disabled = true;
+                    btnVideoCall.disabled = true;
+                });
+
+                ua.on('registered', function (e) {
+                    console.log('UA "registered" event');
+                    // window.alert(e.response)
+                    console.log(e.response);
+                    txtRegStatus.innerHTML = '<i>Registered</i>';
+                    btnRegister.disabled = true;
+                    btnUnRegister.disabled = false;
+                    btnAudioCall.disabled = false;
+                    btnVideoCall.disabled = false;
+                    callId.innerHTML = "Call-ID (register): " + e.response.call_id;
+                    window.alert("TABX");
+                });
+
+                ua.on('unregistered', function (e) {
+                    console.log('UA "unregistered" event');
+                    txtRegStatus.innerHTML = '<i>Unregistered</i>';
+                });
+
+                ua.on('registrationFailed', function (e) {
+                    console.log('UA "registrationFailed" event');
+                    console.dir(e);
+                    txtRegStatus.innerHTML = '<i>Registration Failed</i>';
+                });
+
+
+
+                ua.on('newRTCSession', function (e) {
+                    console.log(e);
+                    console.log('UA "newRTCSession" event');
+                    session = e.session;
+
+                    callId.innerHTML = callId.innerHTML + ", Call-ID (invite): " + e.request.call_id;
+
+                    var count = Object.keys(ua._sessions).length;
+
+                    if (count > 1) {
+                        var extraHeaders = ['X-Foo: foo', 'X-Bar: bar'];
+                        var status_code = "486";
+                        var reason_phrase = "BUSY HERE";
+                        var options = {
+                            'extraHeaders': extraHeaders,
+                            'status_code': status_code,
+                            'reason_phrase': reason_phrase
+                        };
+
+                        session.terminate(options);
+                    } else {
+                        if (session.direction == 'incoming') {
+
+                            startRingTone();
+
+                            // console.dir(Object.keys(ua._sessions).length);
+
+                            uiBtnCallSetText('Answer');
+                            btnHangUp.value = 'Reject';
+                            btnAudioCall.disabled = false;
+                            btnVideoCall.disabled = false;
+                            btnHangUp.disabled = false;
+
+                            console.log('incomming call from : ' + JSON.stringify(session.remote_identity));
+
+                            var sRemoteNumber = (session.remote_identity._display_name || session.remote_identity._user ||
+                                'unknown');
+                            txtCallStatus.innerHTML = "<i>Incoming call from [<b>" + sRemoteNumber + "</b>]</i>";
+                            showNotifICall(sRemoteNumber);
+
+                            session.on('peerconnection', function (e) {
+                                var peerconnection = session.connection;
+                                peerconnection.addEventListener('addstream', function (e) {
+                                    var localStream = peerconnection.getLocalStreams()[0];
+                                    // console.log(peerconnection.getLocalStreams());
+                                    // console.log(localStream);
+                                    videoLocal.srcObject = localStream;
+                                    videoRemote.srcObject = e.stream;
+                                    txtCallStatus.innerHTML = '<i>Streaming</i>';
+                                    uiVideoDisplayShowHide(true);
+                                });
+                                console.log('UA "newRTCSession" event peerconnection');
+                            });
+
+                            session.on('failed', function (e) {
+                                stopRingTone();
+                                session = null;
+                                btnAudioCall.disabled = false;
+                                btnVideoCall.disabled = false;
+                                btnHangUp.disabled = true;
+                                uiBtnCallSetText('Call');
+                                btnHangUp.value = 'HangUp';
+                                txtCallStatus.innerHTML = '<i>Failed</i>';
+                                console.log('UA "newRTCSession" event failed : ' + e);
+                                console.dir(e);
+                                var tmp = callId.innerHTML.split(",")
+                                callId.innerHTML = tmp[0];
+                            });
+
+                            session.on('ended', function (e) {
+                                session = null;
+                                console.dir('UA "newRTCSession" event ended : ' + e);
+                                btnAudioCall.disabled = false;
+                                btnVideoCall.disabled = false;
+                                btnHangUp.disabled = true;
+                                uiBtnCallSetText('Call');
+                                btnHangUp.value = 'HangUp';
+                                txtCallStatus.innerHTML = '<i>Ended</i>';
+                                stopRingTone();
+                                console.dir(e);
+                                uiVideoDisplayShowHide(false);
+                                var tmp = callId.innerHTML.split(",")
+                                callId.innerHTML = tmp[0];
+                            });
+
+                            session.on('accepted', function (e) {
+                                //txtCallStatus.innerHTML = '<i>Answered</i>'
+                                console.log('UA "newRTCSession" event accepted');
+                                txtCallStatus.innerHTML = '<i>Accepted</i>';
+                                console.dir(e);
+                                stopRingTone();
+                            });
+                        } else {
+
+                        }
+                    }
+
+
+                    // session.on('sdp', function (e) {
+
+
+
+                    //     if (false) {
+                    //         var chkVideoBW = document.getElementById("chkVideoBW");
+                    //         var txtVideoAS = document.getElementById("txtVideoAS");
+                    //         var txtVideoRS = document.getElementById("txtVideoRS");
+                    //         var txtVideoRR = document.getElementById("txtVideoRR");
+
+                    //         var chkAudioBW = document.getElementById("chkAudioBW");
+                    //         var txtAudioAS = document.getElementById("txtAudioAS");
+                    //         var txtAudioRS = document.getElementById("txtAudioRS");
+                    //         var txtAudioRR = document.getElementById("txtAudioRR");
+
+                    //         // var transform = require('sdp-transform');
+                    //         var sdp = e.sdp;
+
+                    //         console.log('sdp tranform');
+                    //         // console.log(sdp);
+
+                    //         // console.log(JSON.stringify(sdp));
+
+                    //         // var sdp = setBandwidth(e.sdp);
+
+                    //         // var line = sdp.split('\r\n');
+                    //         // line.forEach(function(element) {
+                    //         //     console.log(element);
+                    //         //     // element = element + '';
+                    //         //     // if(element.startWith('m=video')){
+                    //         //     //     console.log('55555555555555555555555555555');
+                    //         //     // }
+                    //         // });
+
+                    //         var res = PhoneJs.sdpTranform.parse(sdp);
+
+
+
+                    //         delete res['invalid'];
+
+                    //         for (i in res.media) {
+                    //             // delete res.media[i].rtcpFbTrrInt;
+                    //             // res.media[i].protocol = 'UDP/TLS/RTP/SAVPF';
+                    //         }
+
+                    //         // console.log(res);
+
+                    //         if (chkVideoBW.checked) {
+                    //             for (i in res.media) {
+                    //                 if (res.media[i].type == 'video') {
+                    //                     if (txtVideoAS.value !== null && txtVideoAS.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'AS',
+                    //                             limit: txtVideoAS.value  //256
+                    //                         });
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'TIAS',
+                    //                             limit: txtVideoAS.value  //256
+                    //                         });
+                    //                     }
+                    //                     if (txtVideoRS.value !== null && txtVideoRS.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'RS',
+                    //                             limit: txtVideoRS.value  //800
+                    //                         });
+                    //                     }
+                    //                     if (txtVideoRR.value !== null && txtVideoRR.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'RR',
+                    //                             limit: txtVideoRR.value  //2400
+                    //                         });
+                    //                     }
+                    //                 }
+                    //             }
+                    //         }
+
+                    //         if (chkAudioBW.checked) {
+                    //             for (i in res.media) {
+                    //                 if (res.media[i].type == 'audio') {
+                    //                     if (txtAudioAS.value !== null && txtAudioAS.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'AS',
+                    //                             limit: txtAudioAS.value  //64
+                    //                         });
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'TIAS',
+                    //                             limit: txtAudioAS.value  //64
+                    //                         });
+                    //                     }
+                    //                     if (txtAudioRS.value !== null && txtAudioRS.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'RS',
+                    //                             limit: txtAudioRS.value //800
+                    //                         });
+                    //                     }
+                    //                     if (txtAudioRR.value !== null && txtAudioRR.value !== '') {
+                    //                         if (!res.media[i].bandwidth)
+                    //                             res.media[i].bandwidth = [];
+                    //                         res.media[i].bandwidth.push({
+                    //                             type: 'RR',
+                    //                             limit: txtAudioRR.value //2400
+                    //                         });
+                    //                     }
+                    //                 }
+                    //             }
+                    //         }
+
+                    //         e.sdp = PhoneJs.sdpTranform.write(res);
+
+                    //         // console.log(res.media[0].payloads);
+                    //         // console.log(e.sdp);
+                    //         // var line = sdp.split('\r\n');
+                    //         // line.forEach(function(element) {
+                    //         //     console.log(element);
+                    //         // });
+                    //     }
+
+                    // });
+
+
+                });
+
+                ua.start();
+
+            } catch (e) {
+                txtRegStatus.innerHTML = "<b>2:" + e + "</b>";
+            }
+            // btnRegister.disabled = false;
+        }
+
+        // function pingTest() {
+        //     var host = txtWebSsocketUri.value;
+        //     // var wsUri = 'wss://' + host + ':10081';
+        //     const ws = new WebSocket(host);
+
+        //     ws.onopen = function (e) {
+        //         ws.send(Date.now());
+        //         console.log('ping sended');
+        //     };
+        //     ws.onclose = function (e) {
+        //         console.log('ping closed');
+        //     };
+
+        //     ws.onmessage = function (e) {
+        //         // console.log(`Round trip time: ${Date.now() - e.data} ms`);
+        //         // txtPingTime.innerHTML = `Round trip time : ${Date.now() - e.data} ms`
+        //         setTimeout(function timeout() {
+        //             ws.send(Date.now());
+        //         }, 1000);
+        //     };
+        // }
+
+        function sipUnRegister() {
+            if (ua) {
+                ua.stop(); // shutdown all sessions
+            }
+        }
+
+        function chkDefaultFunc() {
+            var chkDefaultStun = document.getElementById("chkDefaultStun");
+
+            var stunUrl = document.getElementById("txtStunUrl");
+            var turnUrl = document.getElementById("txtTurnUrl");
+            var turnUserName = document.getElementById("txtTurnUserName");
+            var turnCredential = document.getElementById("txtTurnCredential");
+            if (chkDefaultStun.checked) {
+                stunUrl.value = "stun:202.129.207.231";
+                turnUrl.value = "turn:202.129.207.231";
+                turnUserName.value = "ninefingers";
+                turnCredential.value = "youhavetoberealistic";
+
+                //stunUrl.disabled = true;
+                //turnUrl.disabled = true;
+                //turnUserName.disabled = true;
+                //turnCredential.disabled = true;
+
+            } else {
+                stunUrl.value = "";
+                turnUrl.value = "";
+                turnUserName.value = "";
+                turnCredential.value = "";
+
+                //stunUrl.disabled = false;
+                //turnUrl.disabled = false;
+                //turnUserName.disabled = false;
+                //turnCredential.disabled = false;
+            }
+
+        }
+
+        function chkVideoBW() {
+            var chkVideoBW = document.getElementById("chkVideoBW");
+            var txtVideoAS = document.getElementById("txtVideoAS");
+            var txtVideoRS = document.getElementById("txtVideoRS");
+            var txtVideoRR = document.getElementById("txtVideoRR");
+
+            if (chkVideoBW.checked) {
+                txtVideoAS.value = '256';
+                // txtVideoRS.value = '800';
+                // txtVideoRR.value = '2400';
+            } else {
+                txtVideoAS.value = '';
+                txtVideoRS.value = '';
+                txtVideoRR.value = '';
+            }
+        }
+
+        function chkAudioBW() {
+            var chkAudioBW = document.getElementById("chkAudioBW");
+            var txtAudioAS = document.getElementById("txtAudioAS");
+            var txtAudioRS = document.getElementById("txtAudioRS");
+            var txtAudioRR = document.getElementById("txtAudioRR");
+
+            if (chkAudioBW.checked) {
+                txtAudioAS.value = '64';
+                // txtAudioRS.value = '800';
+                // txtAudioRR.value = '2400';
+            } else {
+                txtAudioAS.value = '';
+                txtAudioRS.value = '';
+                txtAudioRR.value = '';
+            }
+        }
+
+        function setBandwidth(sdp) {
+            // remove existing bandwidth lines
+            sdp = sdp.replace(/b=AS([^\r\n]+\r\n)/g, '');
+            // audio bandwidth 50 kilobits per second
+            sdp = sdp.replace(/a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:50\r\n');
+            // video bandwidth 256 kilobits per second
+            sdp = sdp.replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:256\r\n');
+
+            return sdp;
+        }
+
+        function sipAnswer() {
+            try {
+                if (session) {
+                    var optAnswer;
+                    var stunUrl = document.getElementById("txtStunUrl").value;
+                    var turnUrl = document.getElementById("txtTurnUrl").value;
+                    var turnUserName = document.getElementById("txtTurnUserName").value;
+                    var turnCredential = document.getElementById("txtTurnCredential").value;
+
+
+                    if (stunUrl && stunUrl.length > 0) {
+                        optAnswer = {
+                            pcConfig: {
+                                iceServers: [{
+                                    urls: [stunUrl]
+                                }]
+                            }
+                        };
+                    }
+
+                    if (turnUrl && turnUrl.length > 0) {
+                        if ((turnUserName && turnUserName.length > 0) && (turnCredential && turnCredential.length > 0)) {
+                            if (optAnswer.pcConfig && optAnswer.pcConfig.iceServers) {
+                                optAnswer.pcConfig.iceServers.push({
+                                    'urls': turnUrl,
+                                    'username': turnUserName,
+                                    'credential': turnCredential
+                                });
+                            } else {
+                                optAnswer.pcConfig = {
+                                    iceServers: [{
+                                        'urls': turnUrl,
+                                        'username': turnUserName,
+                                        'credential': turnCredential
+                                    }]
+                                };
+                            }
+                        } else {
+                            if (optAnswer.pcConfig && optAnswer.pcConfig.iceServers) {
+                                optAnswer.pcConfig.iceServers.push({
+                                    'urls': turnUrl
+                                });
+                            } else {
+                                optAnswer.pcConfig = {
+                                    iceServers: [{
+                                        'urls': turnUrl
+                                    }]
+                                };
+                            }
+                        }
+
+                    }
+
+                    session.answer(optAnswer);
+                    uiBtnCallSetText("Call");
+                    btnHangUp.value = 'HangUp';
+                    // btnHoldResume.value = 'hold';
+                    btnMute.value = "Mute";
+                    btnAudioCall.disabled = true;
+                    btnVideoCall.disabled = true;
+                    btnHangUp.disabled = false;
+                    txtCallStatus.innerHTML = '<i>Accepted Call</i>';
+                } else {
+                    txtCallStatus.innerHTML = '<i>Error : No session</i>';
+                }
+
+            } catch (error) {
+                txtCallStatus.innerHTML = '<i>Error : </i>' + JSON.stringify(error);
+                btnAudioCall.disabled = false;
+                btnVideoCall.disabled = false;
+                btnHangUp.disabled = true;
+            }
+
+        }
+
+        // makes a call (SIP INVITE)
+        function sipCall(videoEnabled) {
+
+            if (ua && !session && txtPhoneNumber.value != '') {
+                txtCallStatus.innerHTML = 'Calling';
+                btnAudioCall.disabled = true;
+                btnVideoCall.disabled = true;
+                btnHangUp.disabled = false;
+                // Register callbacks to desired call events
+                // console.log('INVITE'+e.response);
+                var eventHandlers = {
+                    'progress': function (data) {
+                        // console.dir(data);
+                        console.log('Call progress event');
+                        // console.log(data);
+                        startRingbackTone();
+                        txtCallStatus.innerHTML = '<i>Remote ringing...</i>';
+                        var peerconnection = session.connection;
+                        var localStream = peerconnection.getLocalStreams()[0];
+                        // console.log(peerconnection.getLocalStreams());
+                        // console.log(peerconnection.getRemoteStreams());
+                        // console.log(peerconnection);
+                        videoLocal.srcObject = localStream;
+                        // const stream = navigator.mediaDevices.getUserMedia({audio: true, video: true});
+                        // videoLocal.src = stream;
+
+                        // btnCall.disabled = true;
+                        // btnHangUp.disabled = false;
+                        // var constraints = { audio: true, video: true };
+
+                        // navigator.mediaDevices.getUserMedia(constraints)
+                        //     .then(function (e) {
+                        //         console.log(e);
+                        //     })
+                        //     .catch(function (error) {
+                        //         console.log(error.name + ": " + error.message);
+                        //     });
+                    },
+                    'failed': function (data) {
+                        console.log('Call failed event :' + data.cause);
+                        console.log('Call failed event message:' + data.message);
+                        console.log('Call failed event originator:' + data.originator);
+                        console.log('Call failed event response:' + data.response);
+                        btnAudioCall.disabled = false;
+                        btnVideoCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        session = null;
+                        stopRingbackTone();
+                        txtCallStatus.innerHTML = '<i>Call failed : ' + data.cause + '</i>';
+                        var tmp = callId.innerHTML.split(",")
+                        callId.innerHTML = tmp[0];
+                        window.alert(data);
+                    },
+                    'confirmed': function (data) {
+                        console.log('Call confirmed event');
+                        console.log(data);
+                    },
+                    'ended': function (data) {
+                        console.log('Call ended event :' + data.cause);
+                        uiVideoDisplayShowHide(false);
+                        btnAudioCall.disabled = false;
+                        btnVideoCall.disabled = false;
+                        btnHangUp.disabled = true;
+                        txtCallStatus.innerHTML = '<i>Ended</i>';
+                        session = null;
+                        var tmp = callId.innerHTML.split(",")
+                        callId.innerHTML = tmp[0];
+                    },
+                    'connecting': function (data) {
+                        console.log('Call connecting event');
+                        console.log(data);
+                    },
+                    'accepted': function (data) {
+                        // console.log(PhoneJs.OutgoingRequest);
+                        // console.log(data);
+                        // callId.innerHTML = "Call-ID : " + data.response.call_id;
+                        console.log(data);
+                        console.log('Call accepted event');
+                        stopRingbackTone();
+
+                        txtCallStatus.innerHTML = '<i>On Call</i>';
+                    }
+                };
+
+                var options = {
+                    'eventHandlers': eventHandlers,
+                    'extraHeaders': ['X-Foo: foo', 'X-Bar: bar'],
+                    'mediaConstraints': {
+                        'audio': true,
+                        'video': videoEnabled
+                    },
+                    'rtcOfferConstraints': {
+                        offerToReceiveAudio: 1,
+                        offerToReceiveVideo: 1
+                    }
+                };
+
+                var stunUrl = document.getElementById("txtStunUrl").value;
+                var turnUrl = document.getElementById("txtTurnUrl").value;
+                var turnUserName = document.getElementById("txtTurnUserName").value;
+                var turnCredential = document.getElementById("txtTurnCredential").value;
+                //var pcConfig = { iceServers: [ { urls : [ iceServer ] } ] };
+
+                if (stunUrl && stunUrl.length > 0) {
+                    options.pcConfig = {
+                        iceServers: [{
+                            urls: [stunUrl]
+                        }]
+                    };
+                }
+
+                if (turnUrl && turnUrl.length > 0) {
+                    if ((turnUserName && turnUserName.length > 0) && (turnCredential && turnCredential.length > 0)) {
+                        if (options.pcConfig && options.pcConfig.iceServers) {
+                            options.pcConfig.iceServers.push({
+                                'urls': turnUrl,
+                                'username': turnUserName,
+                                'credential': turnCredential
+                            });
+                        } else {
+                            options.pcConfig = {
+                                iceServers: [{
+                                    'urls': turnUrl,
+                                    'username': turnUserName,
+                                    'credential': turnCredential
+                                }]
+                            };
+                        }
+                    } else {
+                        if (options.pcConfig && options.pcConfig.iceServers) {
+                            options.pcConfig.iceServers.push({
+                                'urls': turnUrl
+                            });
+                        } else {
+                            options.pcConfig = {
+                                iceServers: [{
+                                    'urls': turnUrl
+                                }]
+                            };
+                        }
+                    }
+                }
+
+                // console.log(JSON.stringify(options));
+
+                try {
+                    
+                    session = ua.call(txtPhoneNumber.value, options);
+                    var peerconnection = session.connection;
+                    peerconnection.addEventListener('addstream', function (e) {
+                        // var localStream = peerconnection.getLocalStreams()[0];
+                        // videoLocal.srcObject = localStream;
+                        // videoLocal.play();
+                        // console.log(e);
+                        videoRemote.srcObject = e.stream;
+                        uiVideoDisplayShowHide(true);
+                    });
+                    
+                } catch (error) {
+                    console.log(error);
+                    txtCallStatus.innerHTML = '<i>Error : </i>' + JSON.stringify(error);
+                    btnAudioCall.disabled = false;
+                    btnVideoCall.disabled = false;
+                    btnHangUp.disabled = true;
+                }
+
+            }
+        }
+
+
+
+
+
+
+
+        // transfers the call
+        function sipTransfer() {
+            if (oSipSessionCall) {
+                var s_destination = prompt('Enter destination number', '');
+                if (!tsk_string_is_null_or_empty(s_destination)) {
+                    btnTransfer.disabled = true;
+                    if (oSipSessionCall.transfer(s_destination) != 0) {
+                        txtCallStatus.innerHTML = '<i>Call transfer failed</i>';
+                        btnTransfer.disabled = false;
+                        return;
+                    }
+                    txtCallStatus.innerHTML = '<i>Transfering the call...</i>';
+                }
+            }
+        }
+
+        // holds or resumes the call
+        function sipToggleHoldResume() {
+            if (session) {
+                var bHold = session.isOnHold();
+                txtCallStatus.innerHTML = bHold.local ? '<i>Resuming the call...</i>' : '<i>Holding the call...</i>';
+                if (bHold.local) {
+                    console.log('unhold');
+                    session.unhold();
+                } else {
+                    console.log('hold');
+                    session.hold();
+                }
+            }
+        }
+
+        // Mute or Unmute the call
+        function sipToggleMute() {
+            if (session) {
+                var i_ret;
+                var bMute = session.isMuted();
+                txtCallStatus.innerHTML = !bMute.audio ? '<i>Mute the call...</i>' : '<i>Unmute the call...</i>';
+                if (bMute && bMute.audio) {
+                    console.log('unmute');
+                    session.unmute({
+                        'audio': true, // Local audio is muted
+                        'video': false // Local audio is not muted
+                    });
+                } else {
+                    console.log('mute');
+                    session.mute({
+                        'audio': true, // Local audio is muted
+                        'video': false // Local audio is not muted
+                    });
+                }
+            }
+        }
+
+        // terminates the call (SIP BYE or CANCEL)
+        function sipHangUp() {
+            if (session) {
+                var extraHeaders = ['X-Foo: foo', 'X-Bar: bar'];
+
+                var options = {
+                    'extraHeaders': extraHeaders
+                };
+
+                session.terminate(options);
+                uiCallTerminated();
+            }
+        }
+
+        function sipSendDTMF(c) {
+            if (oSipSessionCall && c) {
+                if (oSipSessionCall.dtmf(c) == 0) {
+                    try {
+                        dtmfTone.play();
+                    } catch (e) { }
+                }
+            }
+        }
+
+        function startRingTone() {
+            try {
+                ringtone.play();
+            } catch (e) { }
+        }
+
+        function stopRingTone() {
+            try {
+                ringtone.pause();
+            } catch (e) { }
+        }
+
+        function startRingbackTone() {
+            try {
+                ringbacktone.play();
+            } catch (e) { }
+        }
+
+        function stopRingbackTone() {
+            try {
+                ringbacktone.pause();
+            } catch (e) { }
+        }
+
+        function openKeyPad() {
+            divKeyPad.style.visibility = 'visible';
+            divKeyPad.style.left = ((document.body.clientWidth - C.divKeyPadWidth) >> 1) + 'px';
+            divKeyPad.style.top = '70px';
+            divGlassPanel.style.visibility = 'visible';
+        }
+
+        function closeKeyPad() {
+            divKeyPad.style.left = '0px';
+            divKeyPad.style.top = '0px';
+            divKeyPad.style.visibility = 'hidden';
+            divGlassPanel.style.visibility = 'hidden';
+        }
+
+
+        function showNotifICall(s_number) {
+            // permission already asked when we registered
+            if (window.webkitNotifications && window.webkitNotifications.checkPermission() == 0) {
+                if (oNotifICall) {
+                    oNotifICall.cancel();
+                }
+                oNotifICall = window.webkitNotifications.createNotification('images/sipml-34x39.png', 'Incaming call',
+                    'Incoming call from ' + s_number);
+                oNotifICall.onclose = function () {
+                    oNotifICall = null;
+                };
+                oNotifICall.show();
+            }
+        }
+
+        function onKeyUp(evt) {
+            evt = (evt || window.event);
+            if (evt.keyCode == 27) {
+                fullScreen(false);
+            } else if (evt.ctrlKey && evt.shiftKey) { // CTRL + SHIFT
+                if (evt.keyCode == 65 || evt.keyCode == 86) { // A (65) or V (86)
+                    bDisableVideo = (evt.keyCode == 65);
+                    txtCallStatus.innerHTML = '<i>Video ' + (bDisableVideo ? 'disabled' : 'enabled') + '</i>';
+                    window.localStorage.setItem('org.doubango.expert.disable_video', bDisableVideo);
+                }
+            }
+        }
+
+        function onDivCallCtrlMouseMove(evt) {
+            try { // IE: DOM not ready
+                if (tsk_utils_have_stream()) {
+                    //btnCall.disabled = (!tsk_utils_have_stream() || !oSipSessionRegister || !oSipSessionRegister.is_connected());
+                    document.getElementById("divCallCtrl").onmousemove = null; // unsubscribe
+                }
+            } catch (e) { }
+        }
+
+        function uiOnConnectionEvent(b_connected, b_connecting) { // should be enum: connecting, connected, terminating, terminated
+            btnRegister.disabled = b_connected || b_connecting;
+            btnUnRegister.disabled = !b_connected && !b_connecting;
+            //btnCall.disabled = !(b_connected && tsk_utils_have_webrtc() && tsk_utils_have_stream());
+            btnHangUp.disabled = !oSipSessionCall;
+        }
+
+        function uiVideoDisplayEvent(b_local, b_added) {
+            var o_elt_video = b_local ? videoLocal : videoRemote;
+
+            if (b_added) {
+                o_elt_video.style.opacity = 1;
+                uiVideoDisplayShowHide(true);
+            } else {
+                o_elt_video.style.opacity = 0;
+                fullScreen(false);
+            }
+        }
+
+        function uiVideoDisplayShowHide(b_show) {
+            if (b_show) {
+                tdVideo.style.height = '340px';
+                divVideo.style.height = navigator.appName == 'Microsoft Internet Explorer' ? '100%' : '340px';
+            } else {
+                tdVideo.style.height = '0px';
+                divVideo.style.height = '0px';
+            }
+            // btnFullScreen.disabled = !b_show;
+            divCallOptions.style.opacity = b_show ? 1 : 0;
+            videoLocal.style.opacity = b_show ? 1 : 0;
+        }
+
+        function uiDisableCallOptions() {
+            if (window.localStorage) {
+                window.localStorage.setItem('org.doubango.expert.disable_callbtn_options', 'true');
+                uiBtnCallSetText('Call');
+                alert('Use expert view to enable the options again (/!\\requires re-loading the page)');
+            }
+        }
+
+        function uiBtnCallSetText(s_text) {
+            switch (s_text) {
+                case "Call":
+                    {
+                        // var bDisableCallBtnOptions = (window.localStorage && window.localStorage.getItem('org.doubango.expert.disable_callbtn_options') == "true");
+                        // var bDisableCallBtnOptions = false;
+                        // btnCall.value = btnCall.innerHTML = bDisableCallBtnOptions ? 'Call' : 'Call';
+                        // btnCall.setAttribute("class", bDisableCallBtnOptions ? "btn btn-primary" : "btn btn-primary dropdown-toggle");
+                        // btnCall.onclick = bDisableCallBtnOptions ? function () { sipCall(bDisableVideo ? 'call-audio' : 'call-audiovideo'); } : null;
+                        // ulCallOptions.style.visibility = bDisableCallBtnOptions ? "hidden" : "visible";
+                        // if (!bDisableCallBtnOptions && ulCallOptions.parentNode != divBtnCallGroup) {
+                        //     divBtnCallGroup.appendChild(ulCallOptions);
+                        // }
+                        // else if (bDisableCallBtnOptions && ulCallOptions.parentNode == divBtnCallGroup) {
+                        //     document.body.appendChild(ulCallOptions);
+                        // }
+                        btnAudioCall.value = btnAudioCall.innerHTML = "Audio Call";
+                        btnAudioCall.setAttribute("class", "btn btn-primary");
+                        btnAudioCall.onclick = function () {
+                            sipCall(false);
+                        };
+                        btnVideoCall.value = btnVideoCall.innerHTML = "Video Call";
+                        btnVideoCall.setAttribute("class", "btn btn-primary");
+                        btnVideoCall.onclick = function () {
+                            setTimeout(sipCall(true), 3000);
+                        };
+                        ulCallOptions.style.visibility = "hidden";
+                        break;
+                    }
+                case "Answer":
+                    {
+                        btnAudioCall.value = btnAudioCall.innerHTML = s_text;
+                        btnAudioCall.setAttribute("class", "btn btn-primary");
+                        btnAudioCall.onclick = function () {
+                            sipAnswer(false);
+                        };
+                        btnVideoCall.value = btnVideoCall.innerHTML = s_text;
+                        btnVideoCall.setAttribute("class", "btn btn-primary");
+                        btnVideoCall.onclick = function () {
+                            sipAnswer(true);
+                        };
+                        ulCallOptions.style.visibility = "hidden";
+                        break;
+                    }
+                default:
+                    {
+                        btnAudioCall.value = btnAudioCall.innerHTML = s_text;
+                        btnAudioCall.setAttribute("class", "btn btn-primary");
+                        btnAudioCall.onclick = function () {
+                            sipCall(false);
+                        };
+                        btnVideoCall.value = btnCbtnVideoCallall.innerHTML = s_text;
+                        btnVideoCall.setAttribute("class", "btn btn-primary");
+                        btnVideoCall.onclick = function () {
+                            setTimeout(sipCall(true), 3000);
+                        };
+                        ulCallOptions.style.visibility = "hidden";
+                        if (ulCallOptions.parentNode == divBtnCallGroup) {
+                            document.body.appendChild(ulCallOptions);
+                        }
+                        break;
+                    }
+            }
+        }
+
+        function uiCallTerminated(s_description) {
+            uiBtnCallSetText("Call");
+            btnHangUp.value = 'HangUp';
+            // btnHoldResume.value = 'hold';
+            btnMute.value = "Mute";
+            btnAudioCall.disabled = false;
+            btnVideoCall.disabled = false;
+            btnHangUp.disabled = true;
+
+
+            if (oNotifICall) {
+                oNotifICall.cancel();
+                oNotifICall = null;
+            }
+
+            setTimeout(function () {
+                if (!session) txtCallStatus.innerHTML = '';
+            }, 3000);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+        <div id="divNavbarInner" class="navbar-inner">
+            <div class="container">
+                <h3>Entronica Callcenter Lab : Bkk Demo</h3>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <!-- Modal -->
+        <div class="modal fade bs-example-modal-lg" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="myModalLabel">Detect WebRTC!</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div id="loading-modal">Loading...</div>
+                        <table id="result-table"></table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Large modal -->
+        <div style="margin-bottom: 5px">
+            Is WebRTC Supported In Your Browser? <input type="button" class="btn" data-toggle="modal" data-target="#myModal"
+                value="Test WebRTC Support" onclick="testWebRTC()" />
+        </div>
+        <div class="row-fluid">
+            <div class="span6 well">
+                <label style="width: 100%;" align="center" id="txtRegStatus">
+                </label>
+                <h2>
+                    Registration 
+                    <!-- <label style="width: 100%;" id="txtPingTime"> -->
+                </h2>
+                <br />
+                <table style='width: 100%'>
+                    <!--<tr>
+                        <td>
+                            <label style="height: 100%">
+                                Display Name:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtDisplayName" value=""
+                                   placeholder="e.g. John Doe" />
+                        </td>
+                    </tr>-->
+                    <tr>
+                        <td>
+                            <label style="height: 100%">
+                                WebSocket URI
+                                <sup>*</sup>:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtWebSsocketUri" value="wss://iot-brekeke-wssip.ais.co.th:10081"
+                                placeholder="wss://bkk.entro-lab.com:10081" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label style="height: 100%">
+                                SIP IP:PORT
+                                <sup>*</sup>:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtSipServerUri" value="iot-brekeke-wssip.ais.co.th:5060"
+                                placeholder="e.g. entro-lab.com:5060" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label style="height: 100%">
+                                Display Name
+                                <sup>*</sup>:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtDisplayname" value="cc01@entro" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label style="height: 100%">
+                                User
+                                <sup>*</sup>:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtSipUser" value="cc01" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label style="height: 100%">
+                                User Auth
+                                <sup>*</sup>:
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtSipUserAuthx" value="1234" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label style="height: 100%">Password
+                                <sup>*</sup>:</label>
+                        </td>
+                        <td>
+                            <input type="password" style="width: 100%; height: 100%" id="txtPassword" value="1234" />
+                        </td>
+                    </tr>
+                    <!--<tr>
+                        <td>
+                            <label style="height: 100%">Codec [audio: G722, video: H264]:</label>
+                        </td>
+                        <td>
+                            <input type="checkbox" id="fixed_codec"/>
+                        </td>
+                    </tr>-->
+                    <!--<tr>
+                        <td>
+                            <label style="height: 100%">Realm<sup></sup>:</label>
+                        </td>
+                        <td>
+                            <input type="text" style="width: 100%; height: 100%" id="txtRealm" value="" placeholder="e.g. doubango.org" />
+                        </td>
+                    </tr>-->
+                    <tr valign="top">
+                        <td>
+                            <label style="height: 100%">
+                                ICE Servers:
+                            </label>
+                        </td>
+                        <td>
+                            <div class="well">
+                                <table width="100%">
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                Default STUN/TURN:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" id="chkDefaultStun" onclick="chkDefaultFunc();">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                STUN:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtStunUrl"
+                                                placeholder="e.g. stun:stun.example.com" value="" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                TURN:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtTurnUrl"
+                                                placeholder="e.g. turn:turn.example.com" value="" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtTurnUserName"
+                                                placeholder="username" value="" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtTurnCredential"
+                                                placeholder="credential" value="" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <td>
+                            <label style="height: 100%">
+                                SDP Override:
+                            </label>
+                        </td>
+                        <td>
+                            <div class="well">
+                                <table width="100%">
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                Video BW:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" id="chkVideoBW" onclick="chkVideoBW();">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                AS:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtVideoAS"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr>
+                                    <!-- <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                RS:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtVideoRS"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                RR:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtVideoRR"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr> -->
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                Audio BW:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" id="chkAudioBW" onclick="chkAudioBW();">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                AS:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtAudioAS"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr>
+                                    <!-- <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                RS:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtAudioRS"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label style="height: 100%">
+                                                RR:
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input type="text" style="width: 100%; height: 100%" id="txtAudioRR"
+                                                placeholder="" value="" />
+                                        </td>
+                                    </tr> -->
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="right">
+                            <input type="button" class="btn btn-success" id="btnRegister" value="LogIn" disabled
+                                onclick='sipRegister();' /> &nbsp;
+                            <input type="button" class="btn btn-danger" id="btnUnRegister" value="LogOut" disabled
+                                onclick='sipUnRegister();' />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            <p class="small">
+                                <sup>*</sup>
+                                <i>Mandatory Field</i>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+            <div id="divCallCtrl" class="span5 well" style='display:table-cell; vertical-align:middle'>
+                <label style="width: 100%;" align="center" id="txtCallStatus">
+                </label>
+                <h2>
+                    Call control
+                </h2>
+                <span id="callId"></span>
+                <br />
+                <table style='width: 100%;'>
+                    <tr>
+                        <td style="white-space:nowrap;">
+                            <input type="text" style="width: 100%; height:100%;" id="txtPhoneNumber" value=""
+                                placeholder="Enter SIP URI to call" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">
+                            <div class="btn-toolbar" style="margin: 0; vertical-align:middle">
+                                <!--div class="btn-group">
+                                    <input type="button" id="btnBFCP" style="margin: 0; vertical-align:middle; height: 100%;" class="btn btn-primary" value="BFCP" onclick='sipShareScreen();' disabled />
+                                </div-->
+                                <!--<div id="divBtnCallGroup" class="btn-group">
+                                    <button id="btnCall" disabled class="btn btn-primary" data-toggle="dropdown">Call</button>
+                                </div>&nbsp;&nbsp;-->
+                                <div class="btn-group">
+                                    <input type="button" id="btnAudioCall" style="margin: 0; vertical-align:middle; height: 100%;"
+                                        class="btn btn-primary" value="Audio Call" onclick='sipCall(false);' />
+                                </div>
+                                <div class="btn-group">
+                                    <input type="button" id="btnVideoCall" style="margin: 0; vertical-align:middle; height: 100%;"
+                                        class="btn btn-primary" value="Video Call" onclick='sipCall(true);' />
+                                </div>
+
+                                <div class="btn-group">
+                                    <input type="button" id="btnHangUp" style="margin: 0; vertical-align:middle; height: 100%;"
+                                        class="btn btn-danger" value="HangUp" onclick='sipHangUp();' disabled />
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="tdVideo" class='tab-video'>
+                            <div id="divVideo" class='div-video'>
+                                <div id="divVideoRemote" style='position:relative; border:1px solid #009; height:100%; width:100%; z-index: auto; opacity: 1'>
+                                    <video class="video" width="100%" height="100%" id="video_remote" playsinline
+                                        autoplay="autoplay"></video>
+                                </div>
+
+                                <div id="divVideoLocalWrapper" style="margin-left: 0px; border:0px solid #009; z-index: 1000">
+                                    <div id="divVideoLocal" class="previewvideo" style=' border:0px solid #009; z-index: 1000'>
+                                        <video class="video" width="100%" height="100%" id="video_local" playsinline
+                                            autoplay="autoplay" muted="true"></video>
+                                    </div>
+                                </div>
+                                <!--div id="div1" style="margin-left: 300px; border:0px solid #009; z-index: 1000">
+                                    <iframe class="previewvideo" style="border:0px solid #009; z-index: 1000"> </iframe>
+                                    <div id="div2" class="previewvideo" style='border:0px solid #009; z-index: 1000'>
+                                      <input type="button" class="btn" style="" id="Button1" value="Button1" /> &nbsp;
+                                      <input type="button" class="btn" style="" id="Button2" value="Button2" /> &nbsp;
+                                    </div>
+                                </div-->
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align='center'>
+                            <div id='divCallOptions' class='call-options' style='opacity: 0; margin-top: 0px'>
+                                <!--<input type="button" class="btn" style="" id="btnFullScreen" value="FullScreen" disabled onclick='toggleFullScreen();' /> &nbsp;-->
+                                <input type="button" class="btn" style="" id="btnMute" value="Mute" onclick='sipToggleMute();' />
+                                &nbsp;
+                                <!-- <input type="button" class="btn" style="" id="btnHoldResume" value="Hold" onclick='sipToggleHoldResume();' /> &nbsp; -->
+                                <!--<input type="button" class="btn" style="" id="btnTransfer" value="Transfer" onclick='sipTransfer();' /> &nbsp;-->
+                                <!--<input type="button" class="btn" style="" id="btnKeyPad" value="KeyPad" onclick='openKeyPad();' />-->
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <br />
+        <footer>
+
+
+        </footer>
+    </div>
+    <!-- /container -->
+    <!-- Glass Panel -->
+    <div id='divGlassPanel' class='glass-panel' style='visibility:hidden'></div>
+    <!-- KeyPad Div -->
+    <div id='divKeyPad' class='span2 well div-keypad' style="left:0px; top:0px; width:250; height:240; visibility:hidden">
+        <table style="width: 100%; height: 100%">
+            <tr>
+                <td>
+                    <input type="button" style="width: 33%" class="btn" value="1" onclick="sipSendDTMF('1');" />
+                    <input type="button" style="width: 33%" class="btn" value="2" onclick="sipSendDTMF('2');" />
+                    <input type="button" style="width: 33%" class="btn" value="3" onclick="sipSendDTMF('3');" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="button" style="width: 33%" class="btn" value="4" onclick="sipSendDTMF('4');" />
+                    <input type="button" style="width: 33%" class="btn" value="5" onclick="sipSendDTMF('5');" />
+                    <input type="button" style="width: 33%" class="btn" value="6" onclick="sipSendDTMF('6');" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="button" style="width: 33%" class="btn" value="7" onclick="sipSendDTMF('7');" />
+                    <input type="button" style="width: 33%" class="btn" value="8" onclick="sipSendDTMF('8');" />
+                    <input type="button" style="width: 33%" class="btn" value="9" onclick="sipSendDTMF('9');" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="button" style="width: 33%" class="btn" value="*" onclick="sipSendDTMF('*');" />
+                    <input type="button" style="width: 33%" class="btn" value="0" onclick="sipSendDTMF('0');" />
+                    <input type="button" style="width: 33%" class="btn" value="#" onclick="sipSendDTMF('#');" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan=3>
+                    <input type="button" style="width: 100%" class="btn btn-medium btn-danger" value="close" onclick="closeKeyPad();" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <!-- Call button options -->
+    <ul id="ulCallOptions" class="dropdown-menu" style="visibility:hidden">
+        <!--<li><a href="#" onclick='sipCall("call-audio");'>Audio</a></li>-->
+        <li>
+            <a href="#" onclick='sipCall("call-audiovideo");'>Video</a>
+        </li>
+    </ul>
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser-polyfill.min.js"></script>
+    <script type="text/javascript" src="./assets/js/jquery.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-transition.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-alert.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-modal.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-dropdown.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-scrollspy.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-tab.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-tooltip.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-popover.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-button.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-collapse.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-carousel.js"></script>
+    <script type="text/javascript" src="./assets/js/bootstrap-typeahead.js"></script>
+
+    <!-- Audios -->
+    <audio id="audio_remote" autoplay="autoplay"> </audio>
+    <audio id="ringtone" loop src="sounds/ringtone.wav"> </audio>
+    <audio id="ringbacktone" loop src="sounds/ringbacktone.wav"> </audio>
+    <audio id="dtmfTone" src="sounds/dtmf.wav"> </audio>
+
+</body>
+
+</html>
