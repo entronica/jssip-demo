@@ -391,10 +391,10 @@
                 PhoneJs.PhoneNetwork.enable = true;
                 // PhoneJs.PhoneNetwork.test();
                 var host = window.location.hostname === '' ? 'entro-lab.com' : window.location.hostname;
-                var wsUri = 'wss://bkk.' + host + ':10081';
+                var wsUri = 'wss://sbc-rangeport.entro-lab.com:10062';
                 document.getElementById("txtWebSsocketUri").value = wsUri;
 
-                var sipIP_Port = 'bkk.'+host + ':' + PhoneJs._def.SIP_PORT;
+                var sipIP_Port = '178.128.62.241:' + PhoneJs._def.SIP_PORT;
                 console.log(txtSipServerUri);
                 document.getElementById("txtSipServerUri").value = sipIP_Port;
 
@@ -1504,7 +1504,7 @@
                             </label>
                         </td>
                         <td>
-                            <input type="text" style="width: 100%; height: 100%" id="txtDisplayname" value="cust01" onfocus="this.value=''"/>
+                            <input type="text" style="width: 100%; height: 100%" id="txtDisplayname" value="test1" onfocus="this.value=''"/>
                         </td>
                     </tr>
                     <tr>
@@ -1515,7 +1515,7 @@
                             </label>
                         </td>
                         <td>
-                            <input type="text" style="width: 100%; height: 100%" id="txtSipUser" value="cust01" onfocus="this.value=''"/>
+                            <input type="text" style="width: 100%; height: 100%" id="txtSipUser" value="test1" onfocus="this.value=''"/>
                         </td>
                     </tr>
                     <tr>
@@ -1526,7 +1526,7 @@
                             </label>
                         </td>
                         <td>
-                            <input type="text" style="width: 100%; height: 100%" id="txtSipUserAuthx" value="cust01" onfocus="this.value=''"/>
+                            <input type="text" style="width: 100%; height: 100%" id="txtSipUserAuthx" value="test1" onfocus="this.value=''"/>
                         </td>
                     </tr>
                     <tr>
