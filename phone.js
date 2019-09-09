@@ -35965,6 +35965,10 @@ exports.parse = function (sdp) {
       location = session; // points at where properties go under (one of the above)
   // parse lines we understand
 
+  /* pepsi: replace fingerprint */
+
+  var sdp = sdp.replace(/a=acap:\d\sfingerprint:sha-1/, "a=fingerprint:SHA-1");
+  debug("new sdp: " + sdp);
   sdp.split(/(\r\n|\r|\n)/).filter(validLine).forEach(function (l) {
     var type = l[0];
     var content = l.slice(2);
