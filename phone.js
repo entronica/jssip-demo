@@ -20384,13 +20384,14 @@ function (_EventEmitter) {
       } // Create a new RTCPeerConnection instance.
       // TODO: This may throw an error, should react.
 
-
+      debug("---- pepsi: _createRTCConnection ----");
       this._createRTCConnection(pcConfig, rtcConstraints);
 
       Promise.resolve() // Handle local MediaStream.
       .then(function () {
         // A local MediaStream is given, use it.
         if (mediaStream) {
+          debug("---- pepsi: creaet MediaSteam ok -----");
           return mediaStream;
         } // Audio and/or video requested, prompt getUserMedia.
         else if (mediaConstraints.audio || mediaConstraints.video) {
@@ -20420,6 +20421,7 @@ function (_EventEmitter) {
         _this3._localMediaStream = stream;
 
         if (stream) {
+          debug("---- pepsi: attach MediaStream to RTCPeerconnection ----");
           var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
           if(isSafari) {
             _this3._connection.addStream(stream);
@@ -20448,7 +20450,10 @@ function (_EventEmitter) {
           type: 'offer',
           sdp: e.sdp
         });
+	console.log(offer);
         _this3._connectionPromiseQueue = _this3._connectionPromiseQueue.then(function () {
+	  debug("---- pepsi: _this3._connection.setRemoteDescription(offer)");
+	  debugger;
           return _this3._connection.setRemoteDescription(offer);
         }).catch(function (error) {
           request.reply(488);
@@ -21409,7 +21414,9 @@ function (_EventEmitter) {
     key: "_createRTCConnection",
     value: function _createRTCConnection(pcConfig, rtcConstraints) {
       var _this12 = this;
-
+      debug('---- pepsi _createRTCConnection ----');
+      console.log(pcConfig);
+      console.log(rtcConstraints);
       this._connection = new RTCPeerConnection(pcConfig, rtcConstraints);
 
       this._connection.addEventListener('iceconnectionstatechange', function () {
@@ -34972,10 +34979,10 @@ function (_EventEmitter) {
     value: function newRTCSession(session, data) {
       var videoBandwidth = this._videoBandwidth;
       var audioBandwidth = this._audioBandwidth;
-
+      debug("---- pepsi -----");
       session.on('sdp', function (e) {
         var sdp = e.sdp;
-                      
+        debugger;             
         e.sdp = setBandwidth(sdp, audioBandwidth, videoBandwidth);
       });
       this._sessions[session.id] = session;
@@ -35978,7 +35985,8 @@ exports.parse = function (sdp) {
     }
   });
   session.media = media; // link it up
-
+  console.log("----- pepsi -----");
+  console.log(session.media);
   return session;
 };
 
@@ -43650,7 +43658,7 @@ function shimRemoteStreamsAPI(window) {
 
     window.RTCPeerConnection.prototype.setRemoteDescription = function () {
       const pc = this;
-
+	console.log("---- pepsi: setRemoteDescription ----");
       if (!this._onaddstreampoly) {
         this.addEventListener('track', this._onaddstreampoly = function (e) {
           e.streams.forEach(stream => {
@@ -43661,7 +43669,8 @@ function shimRemoteStreamsAPI(window) {
             if (pc._remoteStreams.indexOf(stream) >= 0) {
               return;
             }
-
+	    console.log( "================");
+            console.log( stream );
             pc._remoteStreams.push(stream);
 
             const event = new Event('addstream');
@@ -43670,7 +43679,7 @@ function shimRemoteStreamsAPI(window) {
           });
         });
       }
-
+      console.log( arguments );
       return origSetRemoteDescription.apply(pc, arguments);
     };
   }
@@ -44051,6 +44060,7 @@ function shimMaxMessageSize(window) {
   window.RTCPeerConnection.prototype.setRemoteDescription = function () {
     this._sctp = null;
 
+  debug("---- pepsi: set remote description ");
     if (sctpInDescription(arguments[0])) {
       // Check if the remote is FF.
       const isFirefox = getRemoteFirefoxVersion(arguments[0]); // Get the maximum message size the local peer is capable of sending
